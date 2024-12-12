@@ -1,0 +1,44 @@
+services:
+
+  gateway:
+    restart: always
+    image: jejutic/onlinejudge-gateway:latest
+    environment:
+      JDBC_URL: jdbc:postgresql://gateway-db:5432/postgres
+      SWAGGER_HOST: swagger-ui
+      SWAGGER_PORT: 8080
+      RABBITMQ_HOST: rabbitmq
+      RABBITMQ_PORT: 5672
+    ports:
+      - 8080:8080
+    depends_on:
+      - gateway-db
+      - rabbitmq
+
+  core:
+    restart: always
+    image: jejutic/onlinejudge-core-stub:latest
+    environment:
+      RABBITMQ_HOST: rabbitmq
+      RABBITMQ_PORT: 5672
+    depends_on:
+      - gateway
+      - rabbitmq
+
+  swagger-ui:
+    image: swaggerapi/swagger-ui
+    environment:
+      SWAGGER_JSON: /openapi.yaml
+    volumes:
+      - ./openapi.yaml:/openapi.yaml
+
+  gateway-db:
+    image: postgres
+    environment:
+      POSTGRES_PASSWORD: password
+
+  rabbitmq:
+    image: rabbitmq:management
+    environment:
+      - RABBITMQ_DEFAULT_USER=rabbitmq
+      - RABBITMQ_DEFAULT_PASS=password

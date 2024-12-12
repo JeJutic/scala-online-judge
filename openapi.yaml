@@ -1,0 +1,236 @@
+openapi: 3.0.0
+info:
+  title: Gateway API
+  version: 0.1.0
+  
+paths:
+  /login:
+    post:
+      summary: Login form
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                username:
+                  $ref: '#/components/schemas/Username'
+                password:
+                  type: string
+                  example: admin
+      responses:
+        '200':
+          description: Successful login
+          content:
+            application/json:
+              schema:
+                type: string
+                example: eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzUxMiJ9.eyJzdWIiOiJhZG1pbiIsImV4cCI6MTczMjg3NTk1NCwiaWF0IjoxNzMyODc1Nzc0fQ.5nRJPeBCFXf4Iz4ED16dhA2j9n5TAAp7mZ0ib8_cSB2W9A_JhUZ1aZDtY5wI4E7AUpTeC5a613WX0pNDK4Urag
+        '403':
+          description: Incorrect username or password
+  /admin/participant:
+    post:
+      summary: Add participant
+      security:
+        - JwtToken: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                username:
+                  type: string
+                  minLength: 1
+                  maxLength: 64
+                  example: participant
+                password:
+                  type: string
+                  minLength: 4
+                  maxLength: 64
+                  example: password
+                email:
+                  type: string
+                  format: email
+                  example: example@mail.com
+      responses:
+        '200':
+          description: Participant added
+        '403':
+          description: Not enough rights
+  /admin/problem:
+    post:
+      summary: Create problem
+      security:
+        - JwtToken: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Problem'
+      responses:
+        '200':
+          description: Problem created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Id'
+        '403':
+          description: Not enough rights
+  /email/{username}:
+    parameters:
+      - name: username
+        in: path
+        description: Username of the requested participant
+        required: true
+        schema:
+          type: string
+    get:
+      summary: Get email of a participant
+      security:
+        - JwtToken: []
+      responses:
+        '200':
+          description: Retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: string
+                example: "example@mail.com"
+        '404':
+          description: User not found or not a participant
+  /problem:
+    get:
+      summary: Get id's of all problems
+      security:
+        - JwtToken: []
+      responses:
+        '200':
+          description: Retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IdList'
+  /problem/{problemId}:
+    parameters:
+      - name: problemId
+        in: path
+        description: ID of problem
+        required: true
+        schema:
+          $ref: '#/components/schemas/Id'
+    get:
+      summary: Get problem description
+      security:
+        - JwtToken: []
+      responses:
+        '200':
+          description: Retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+    post:
+      summary: Submit answer to the problem
+      security:
+        - JwtToken: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                answer:
+                  $ref: '#/components/schemas/Answer'
+      responses:
+        '200':
+          description: Submitted successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Id'
+        '403':
+          description: You can't submit answers
+  /submission:
+    get:
+      summary: Get all your submissions
+      security:
+        - JwtToken: []
+      responses:
+        '200':
+          description: Retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IdList'
+  /submission/{submissionId}:
+    parameters:
+      - name: submissionId
+        in: path
+        description: ID of submission
+        required: true
+        schema:
+          $ref: '#/components/schemas/Id'
+    get:
+      summary: Get info about your submission
+      security:
+        - JwtToken: []
+      responses:
+        '200':
+          description: Retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  problemId:
+                    $ref: '#/components/schemas/Id'
+                  answer:
+                    $ref: '#/components/schemas/Answer'
+                  username:
+                    $ref: '#/components/schemas/Username'
+                  status:
+                    oneOf:
+                      - type: object
+                        properties:
+                          Processing:
+                            type: object
+                      - type: object
+                        properties:
+                          Ok:
+                            type: object
+                      - type: object
+                        properties:
+                          WrongAnswer:
+                            type: object
+                      
+        '404':
+          description: Submission not found
+      
+components:
+  schemas:
+    Id:
+      type: integer
+      example: 1
+    IdList:
+      type: array
+      items:
+        type: integer
+      example: [1, 2, 3]
+    Username:
+      type: string
+      example: admin
+    Problem:
+      type: object
+      properties:
+        description:
+          type: string
+          example: 2 + 2
+    Answer:
+      type: string
+      example: 4
+  securitySchemes:
+    JwtToken:
+      type: apiKey
+      name: Authorization
+      in: header
